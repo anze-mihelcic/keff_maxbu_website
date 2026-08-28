@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assembly Efpd: correlation between keff and maxbu</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 20px; background: Canvas; color: CanvasText; }
+  .wrap { max-width: 1100px; margin: auto; }
+  h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 600; }
+  .hint { margin: 0 0 10px; color: GrayText; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; }
+  button, select { padding: 7px 11px; border: 1px solid GrayText; border-radius: 6px; background: Canvas; color: CanvasText; }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { background: color-mix(in srgb, CanvasText 8%, Canvas); }
+  button:disabled { opacity: .45; cursor: default; }
+  #selection-status { color: GrayText; }
+  #color-warning { font-weight: 600; }
+  .color-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; }
+  .color-gradient { width: 180px; height: 12px; border: 1px solid GrayText; background: linear-gradient(90deg, hsl(240 75% 48%), hsl(120 75% 48%), hsl(0 75% 48%)); }
+  .chart { position: relative; width: 100%; border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: 10px; overflow: hidden; }
+  svg { display: block; width: 100%; height: auto; background: Canvas; }
+  .grid { stroke: color-mix(in srgb, CanvasText 13%, transparent); stroke-width: 1; }
+  .axis { stroke: CanvasText; stroke-width: 1.2; }
+  .tick, .label, .stats { fill: CanvasText; }
+  .tick { font-size: 12px; }
+  .label { font-size: 14px; font-weight: 600; }
+  .point { stroke: Canvas; stroke-width: 1; opacity: .78; cursor: crosshair; }
+  .point:hover, .point:focus { opacity: 1; stroke: CanvasText; stroke-width: 2; outline: none; }
+  .point.selected { opacity: 1; stroke: #f97316; stroke-width: 3; r: 7px; }
+  .fit { stroke: #e11d48; stroke-width: 3; fill: none; pointer-events: none; }
+  .lasso { fill: color-mix(in srgb, #f97316 16%, transparent); stroke: #f97316; stroke-width: 2; stroke-dasharray: 7 4; pointer-events: none; }
+  .lasso-overlay { fill: transparent; pointer-events: none; cursor: crosshair; touch-action: none; }
+  .tooltip { position: absolute; display: none; max-width: min(380px, 80%); padding: 9px 11px; border: 1px solid GrayText; border-radius: 7px; background: Canvas; color: CanvasText; box-shadow: 0 4px 18px #0004; pointer-events: none; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+  .tooltip strong { font-size: 14px; }
+  .stats-bg { fill: Canvas; stroke: GrayText; opacity: .9; }
+  #selection { margin-top: 16px; }
+  #selection h2 { margin: 0 0 8px; font-size: 1.1rem; }
+  #selected-text { margin: 0; padding: 12px; border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: 8px; background: color-mix(in srgb, CanvasText 4%, Canvas); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .load-error { padding: 12px; border: 1px solid #dc2626; border-radius: 8px; color: #dc2626; }
+  .site-nav { margin: 0 0 10px; }
+  .site-nav a { color: LinkText; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p class="site-nav"><a href="../">← Choose another calculation</a></p>
+  <h1>Assembly Efpd: correlation between keff and maxbu</h1>
+  <p id="load-error" class="load-error" hidden></p>
+  <p class="hint">Hover over a point for details, or draw a closed loop to select several candidates. Point color indicates generation.</p>
+  <div class="controls">
+    <label for="fuel-filter-01">f_type01</label>
+    <select id="fuel-filter-01" class="fuel-filter" data-field="f_type01">
+      <option value="any">any</option>
+      <option value="UO2">UO2</option>
+      <option value="MOX">MOX</option>
+      <option value="UZrH">UZrH</option>
+      <option value="UYH">UYH</option>
+    </select>
+    <label for="fuel-filter-02">f_type02</label>
+    <select id="fuel-filter-02" class="fuel-filter" data-field="f_type02">
+      <option value="any">any</option>
+      <option value="UO2">UO2</option>
+      <option value="MOX">MOX</option>
+      <option value="UZrH">UZrH</option>
+      <option value="UYH">UYH</option>
+    </select>
+    <label for="fuel-filter-03">f_type03</label>
+    <select id="fuel-filter-03" class="fuel-filter" data-field="f_type03">
+      <option value="any">any</option>
+      <option value="UO2">UO2</option>
+      <option value="MOX">MOX</option>
+      <option value="UZrH">UZrH</option>
+      <option value="UYH">UYH</option>
+    </select>
+    <label for="fuel-filter-04">f_type04</label>
+    <select id="fuel-filter-04" class="fuel-filter" data-field="f_type04">
+      <option value="any">any</option>
+      <option value="UO2">UO2</option>
+      <option value="MOX">MOX</option>
+      <option value="UZrH">UZrH</option>
+      <option value="UYH">UYH</option>
+    </select>
+    <label for="color-metric">Color by</label>
+    <select id="color-metric">
+      <option value="generation">Generation</option>
+      <option value="enrichment">Enrichment</option>
+      <option value="uranium_ratio">U ratio</option>
+    </select>
+    <label for="color-region">Fuel region</label>
+    <select id="color-region">
+      <option value="01">01</option>
+      <option value="02">02</option>
+      <option value="03">03</option>
+      <option value="04">04</option>
+    </select>
+    <button type="button" id="lasso-button">Draw selection</button>
+    <button type="button" id="clear-button" disabled>Clear selection</button>
+    <button type="button" id="copy-button" disabled>Copy chromosomes</button>
+    <button type="button" id="download-button" disabled>Download chromosomes</button>
+    <button type="button" id="coordinates-button">Download shown coordinates</button>
+    <span id="selection-status" role="status">No candidates selected</span>
+    <span id="color-warning" role="alert"></span>
+  </div>
+  <div id="color-legend" class="color-legend" hidden>
+    <strong id="color-legend-title"></strong>
+    <span id="color-min"></span>
+    <span class="color-gradient" aria-hidden="true"></span>
+    <span id="color-max"></span>
+  </div>
+  <div class="chart" id="chart">
+    <svg id="plot" viewBox="0 0 960 620" role="img" aria-labelledby="plot-title plot-desc">
+      <title id="plot-title">Assembly Efpd: correlation between keff and maxbu</title>
+      <desc id="plot-desc">Each point represents one candidate. Hover or use the keyboard to inspect it.</desc>
+    </svg>
+    <div class="tooltip" id="tooltip" role="status"></div>
+  </div>
+  <section id="selection" hidden>
+    <h2>Selected chromosomes</h2>
+    <pre id="selected-text"></pre>
+  </section>
+</main>
+<script>
+(async () => {
+  "use strict";
+  const plotTitle = "Assembly Efpd: correlation between keff and maxbu";
+  const xAxisLabel = "keff";
+  const yAxisLabel = "Cycle length [day]";
+  const dataUrl = "data/candidates.json";
+  let payload = null;
+  if (dataUrl !== null) {
+    const response = await fetch(dataUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Could not load ${dataUrl} (HTTP ${response.status})`);
+    payload = await response.json();
+  }
+  if (!payload || !Array.isArray(payload.points) || !payload.statistics) {
+    throw new Error("The candidate data file has an invalid format.");
+  }
+  const points = payload.points;
+  const stats = payload.statistics;
+  const svg = document.getElementById("plot");
+  const chart = document.getElementById("chart");
+  const tooltip = document.getElementById("tooltip");
+  const fuelFilters = Array.from(document.querySelectorAll(".fuel-filter"));
+  const colorMetric = document.getElementById("color-metric");
+  const colorRegion = document.getElementById("color-region");
+  const colorWarning = document.getElementById("color-warning");
+  const colorLegend = document.getElementById("color-legend");
+  const colorLegendTitle = document.getElementById("color-legend-title");
+  const colorMin = document.getElementById("color-min");
+  const colorMax = document.getElementById("color-max");
+  const lassoButton = document.getElementById("lasso-button");
+  const clearButton = document.getElementById("clear-button");
+  const copyButton = document.getElementById("copy-button");
+  const downloadButton = document.getElementById("download-button");
+  const coordinatesButton = document.getElementById("coordinates-button");
+  const selectionStatus = document.getElementById("selection-status");
+  const selectionSection = document.getElementById("selection");
+  const selectedText = document.getElementById("selected-text");
+  const NS = "http://www.w3.org/2000/svg";
+  const width = 960, height = 620;
+  const margin = { top: 35, right: 35, bottom: 70, left: 85 };
+  const innerWidth = width - margin.left - margin.right;
+  const innerHeight = height - margin.top - margin.bottom;
+
+  const xValues = points.map(p => p.keff);
+  const yValues = points.map(p => p.maxbu);
+  let xMin = Math.min(...xValues), xMax = Math.max(...xValues);
+  let yMin = Math.min(...yValues), yMax = Math.max(...yValues);
+  const xPad = (xMax - xMin || Math.abs(xMin) || 1) * 0.06;
+  const yPad = (yMax - yMin || Math.abs(yMin) || 1) * 0.08;
+  xMin -= xPad; xMax += xPad; yMin -= yPad; yMax += yPad;
+  const sx = value => margin.left + (value - xMin) / (xMax - xMin) * innerWidth;
+  const sy = value => margin.top + innerHeight - (value - yMin) / (yMax - yMin) * innerHeight;
+  const add = (tag, attributes, parent = svg) => {
+    const element = document.createElementNS(NS, tag);
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    parent.appendChild(element);
+    return element;
+  };
+
+  for (let i = 0; i <= 5; i += 1) {
+    const x = margin.left + i * innerWidth / 5;
+    const y = margin.top + i * innerHeight / 5;
+    add("line", { x1: x, x2: x, y1: margin.top, y2: margin.top + innerHeight, class: "grid" });
+    add("line", { x1: margin.left, x2: margin.left + innerWidth, y1: y, y2: y, class: "grid" });
+    const xt = add("text", { x, y: margin.top + innerHeight + 25, "text-anchor": "middle", class: "tick" });
+    xt.textContent = (xMin + i * (xMax - xMin) / 5).toPrecision(5);
+    const yt = add("text", { x: margin.left - 12, y: y + 4, "text-anchor": "end", class: "tick" });
+    yt.textContent = (yMax - i * (yMax - yMin) / 5).toPrecision(5);
+  }
+  add("line", { x1: margin.left, x2: margin.left + innerWidth, y1: margin.top + innerHeight, y2: margin.top + innerHeight, class: "axis" });
+  add("line", { x1: margin.left, x2: margin.left, y1: margin.top, y2: margin.top + innerHeight, class: "axis" });
+  const xLabel = add("text", { x: margin.left + innerWidth / 2, y: height - 18, "text-anchor": "middle", class: "label" });
+  xLabel.textContent = xAxisLabel;
+  const yLabel = add("text", { x: 20, y: margin.top + innerHeight / 2, "text-anchor": "middle", transform: `rotate(-90 20 ${margin.top + innerHeight / 2})`, class: "label" });
+  yLabel.textContent = yAxisLabel;
+
+  const fitLine = add("line", {
+    x1: sx(xMin),
+    y1: sy(stats.slope === null ? yMin : stats.slope * xMin + stats.intercept),
+    x2: sx(xMax),
+    y2: sy(stats.slope === null ? yMin : stats.slope * xMax + stats.intercept),
+    class: "fit"
+  });
+  if (stats.slope === null) fitLine.style.display = "none";
+
+  const generations = points.map(p => Number(p.generation));
+  const genMin = Math.min(...generations), genMax = Math.max(...generations);
+  const pointColor = generation => {
+    const fraction = genMax === genMin ? 0.5 : (generation - genMin) / (genMax - genMin);
+    return `hsl(${220 - 170 * fraction} 68% 48%)`;
+  };
+  const numericPointColor = (value, minimum, maximum) => {
+    const fraction = maximum === minimum ? 0.5 : (value - minimum) / (maximum - minimum);
+    return `hsl(${240 - 240 * fraction} 75% 48%)`;
+  };
+  const hideTooltip = () => { tooltip.style.display = "none"; };
+  const showTooltip = (event, point, circle) => {
+    tooltip.replaceChildren();
+    const lines = [
+      [point.candidate, true],
+      [`keff: ${point.keff}`, false],
+      [`maxbu: ${point.maxbu}`, false],
+      [`Generation: ${point.generation}`, false],
+      [`Generation folder: ${point.generationFolder}`, false],
+      [Object.entries(point.fuelTypes).map(
+        ([field, value]) => `${field}: ${value === null ? "not found" : value}`
+      ).join(", "), false],
+      ...(colorMetric.value === "generation" ? [] : [[
+        `${colorMetric.value}${colorRegion.value}: ${
+          point.chromosome === null || point.chromosome[`${colorMetric.value}${colorRegion.value}`] === undefined
+            ? "not found"
+            : point.chromosome[`${colorMetric.value}${colorRegion.value}`]
+        }`,
+        false
+      ]]),
+      [`Subfolder: ${point.subfolder}`, false],
+      [`Source folder: ${point.sourceFolder}`, false],
+      [`File: ${point.filename}`, false]
+    ];
+    lines.forEach(([text, strong]) => {
+      const line = document.createElement(strong ? "strong" : "div");
+      line.textContent = text;
+      tooltip.appendChild(line);
+    });
+    tooltip.style.display = "block";
+    const chartRect = chart.getBoundingClientRect();
+    const pointRect = circle.getBoundingClientRect();
+    const tipRect = tooltip.getBoundingClientRect();
+    let left = pointRect.left - chartRect.left + pointRect.width / 2 + 12;
+    let top = pointRect.top - chartRect.top - tipRect.height / 2;
+    left = Math.max(5, Math.min(left, chartRect.width - tipRect.width - 5));
+    top = Math.max(5, Math.min(top, chartRect.height - tipRect.height - 5));
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const pointElements = [];
+  points.forEach(point => {
+    const circle = add("circle", {
+      cx: sx(point.keff), cy: sy(point.maxbu), r: 5.5,
+      fill: pointColor(Number(point.generation)), class: "point", tabindex: "0",
+      "aria-label": `${point.candidate}, generation ${point.generation}, keff ${point.keff}, maxbu ${point.maxbu}, source ${point.sourceFolder}/${point.filename}`
+    });
+    circle.addEventListener("mouseenter", event => showTooltip(event, point, circle));
+    circle.addEventListener("mousemove", event => showTooltip(event, point, circle));
+    circle.addEventListener("mouseleave", hideTooltip);
+    circle.addEventListener("focus", event => showTooltip(event, point, circle));
+    circle.addEventListener("blur", hideTooltip);
+    pointElements.push({ point, circle });
+  });
+
+  const applyPointColors = () => {
+    colorWarning.textContent = "";
+    if (colorMetric.value === "generation") {
+      pointElements.forEach(({ point, circle }) => {
+        circle.setAttribute("fill", pointColor(Number(point.generation)));
+      });
+      colorLegend.hidden = true;
+      return;
+    }
+
+    const region = colorRegion.value;
+    const regionFilter = fuelFilters.find(filter => filter.dataset.field === `f_type${region}`);
+    if (!regionFilter || regionFilter.value.toLowerCase() === "any") {
+      colorWarning.textContent = `Select a specific fuel type for f_type${region} before coloring by ${colorMetric.options[colorMetric.selectedIndex].text}.`;
+      pointElements.forEach(({ point, circle }) => {
+        circle.setAttribute("fill", pointColor(Number(point.generation)));
+      });
+      colorLegend.hidden = true;
+      return;
+    }
+
+    const valueField = `${colorMetric.value}${region}`;
+    const values = shownPoints
+      .map(point => point.chromosome === null ? NaN : Number(point.chromosome[valueField]))
+      .filter(Number.isFinite);
+    if (!values.length) {
+      colorWarning.textContent = `No numeric ${valueField} values are available for the shown candidates.`;
+      pointElements.forEach(({ point, circle }) => {
+        circle.setAttribute("fill", pointColor(Number(point.generation)));
+      });
+      colorLegend.hidden = true;
+      return;
+    }
+    const minimum = Math.min(...values);
+    const maximum = Math.max(...values);
+    pointElements.forEach(({ point, circle }) => {
+      const value = point.chromosome === null ? NaN : Number(point.chromosome[valueField]);
+      circle.setAttribute(
+        "fill",
+        Number.isFinite(value) ? numericPointColor(value, minimum, maximum) : "GrayText"
+      );
+    });
+    colorLegendTitle.textContent = `${valueField} for ${regionFilter.value}`;
+    colorMin.textContent = minimum.toPrecision(5);
+    colorMax.textContent = maximum.toPrecision(5);
+    colorLegend.hidden = false;
+  };
+
+  add("rect", { x: margin.left + 10, y: margin.top + 10, width: 182, height: 76, rx: 6, class: "stats-bg" });
+  const statLines = [`n = ${points.length}`, `Pearson r = ${stats.pearson.toFixed(4)}`, `Spearman rho = ${stats.spearman.toFixed(4)}`];
+  const statTextElements = statLines.map((value, index) => {
+    const text = add("text", { x: margin.left + 20, y: margin.top + 33 + index * 21, class: "stats" });
+    text.textContent = value;
+    return text;
+  });
+
+  const averageRanks = values => {
+    const order = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
+    const ranks = Array(values.length);
+    let start = 0;
+    while (start < order.length) {
+      let end = start + 1;
+      while (end < order.length && order[end].value === order[start].value) end += 1;
+      const rank = (start + 1 + end) / 2;
+      for (let index = start; index < end; index += 1) ranks[order[index].index] = rank;
+      start = end;
+    }
+    return ranks;
+  };
+  const pearson = (xValuesForCorrelation, yValuesForCorrelation) => {
+    const count = xValuesForCorrelation.length;
+    if (count < 2) return NaN;
+    const xMean = xValuesForCorrelation.reduce((sum, value) => sum + value, 0) / count;
+    const yMean = yValuesForCorrelation.reduce((sum, value) => sum + value, 0) / count;
+    let numerator = 0, xSquares = 0, ySquares = 0;
+    for (let index = 0; index < count; index += 1) {
+      const dx = xValuesForCorrelation[index] - xMean;
+      const dy = yValuesForCorrelation[index] - yMean;
+      numerator += dx * dy;
+      xSquares += dx * dx;
+      ySquares += dy * dy;
+    }
+    return xSquares && ySquares ? numerator / Math.sqrt(xSquares * ySquares) : NaN;
+  };
+  const formatCorrelation = value => Number.isFinite(value) ? value.toFixed(4) : "n/a";
+  const updateStatisticsAndFit = visiblePoints => {
+    const visibleX = visiblePoints.map(point => point.keff);
+    const visibleY = visiblePoints.map(point => point.maxbu);
+    const r = pearson(visibleX, visibleY);
+    const rho = pearson(averageRanks(visibleX), averageRanks(visibleY));
+    statTextElements[0].textContent = `n = ${visiblePoints.length}`;
+    statTextElements[1].textContent = `Pearson r = ${formatCorrelation(r)}`;
+    statTextElements[2].textContent = `Spearman rho = ${formatCorrelation(rho)}`;
+
+    const uniqueX = new Set(visibleX);
+    if (visiblePoints.length < 2 || uniqueX.size < 2) {
+      fitLine.style.display = "none";
+      return;
+    }
+    const xMean = visibleX.reduce((sum, value) => sum + value, 0) / visibleX.length;
+    const yMean = visibleY.reduce((sum, value) => sum + value, 0) / visibleY.length;
+    let numerator = 0, denominator = 0;
+    visiblePoints.forEach(point => {
+      numerator += (point.keff - xMean) * (point.maxbu - yMean);
+      denominator += (point.keff - xMean) ** 2;
+    });
+    const slope = numerator / denominator;
+    const intercept = yMean - slope * xMean;
+    const lineMin = Math.min(...visibleX);
+    const lineMax = Math.max(...visibleX);
+    fitLine.setAttribute("x1", sx(lineMin));
+    fitLine.setAttribute("y1", sy(slope * lineMin + intercept));
+    fitLine.setAttribute("x2", sx(lineMax));
+    fitLine.setAttribute("y2", sy(slope * lineMax + intercept));
+    fitLine.style.display = "";
+  };
+
+  const lassoPath = add("path", { d: "", class: "lasso" });
+  const overlay = add("rect", {
+    x: margin.left, y: margin.top, width: innerWidth, height: innerHeight,
+    class: "lasso-overlay"
+  });
+  let drawMode = false;
+  let drawing = false;
+  let lassoPoints = [];
+  let selectedPoints = [];
+  let shownPoints = points.slice();
+
+  const eventToSvgPoint = event => {
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const transformed = point.matrixTransform(svg.getScreenCTM().inverse());
+    return { x: transformed.x, y: transformed.y };
+  };
+  const pathFromPoints = (polygon, close = false) => {
+    if (!polygon.length) return "";
+    return `M ${polygon.map(point => `${point.x} ${point.y}`).join(" L ")}${close ? " Z" : ""}`;
+  };
+  const pointInPolygon = (x, y, polygon) => {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+      const xi = polygon[i].x, yi = polygon[i].y;
+      const xj = polygon[j].x, yj = polygon[j].y;
+      const crosses = ((yi > y) !== (yj > y)) &&
+        (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (crosses) inside = !inside;
+    }
+    return inside;
+  };
+  const chromosomeBlock = point => {
+    const location = `${point.generationFolder}/${point.chromosomeName}`;
+    const value = point.chromosome === null
+      ? "[chromosome not found]"
+      : JSON.stringify(point.chromosome, null, 2);
+    return `${point.candidate} | generation ${point.generation} | ${location}\n${value}`;
+  };
+  const renderSelection = selected => {
+    selectedPoints = selected;
+    pointElements.forEach(({ point, circle }) => {
+      circle.classList.toggle("selected", selected.includes(point));
+    });
+    const count = selected.length;
+    selectionStatus.textContent = `${count} candidate${count === 1 ? "" : "s"} selected`;
+    clearButton.disabled = count === 0;
+    copyButton.disabled = count === 0;
+    downloadButton.disabled = count === 0;
+    selectionSection.hidden = count === 0;
+    selectedText.textContent = selected.map(chromosomeBlock).join("\n\n" + "-".repeat(72) + "\n\n");
+    if (count) console.log(selectedText.textContent);
+  };
+  const finishDrawing = event => {
+    if (!drawing) return;
+    drawing = false;
+    overlay.releasePointerCapture(event.pointerId);
+    if (lassoPoints.length >= 3) {
+      lassoPath.setAttribute("d", pathFromPoints(lassoPoints, true));
+      const selected = pointElements
+        .filter(({ point, circle }) =>
+          circle.style.display !== "none" &&
+          pointInPolygon(sx(point.keff), sy(point.maxbu), lassoPoints)
+        )
+        .map(({ point }) => point);
+      renderSelection(selected);
+    } else {
+      lassoPath.setAttribute("d", "");
+      selectionStatus.textContent = "Draw a larger closed loop";
+    }
+    drawMode = false;
+    overlay.style.pointerEvents = "none";
+    lassoButton.textContent = "Draw selection";
+  };
+
+  lassoButton.addEventListener("click", () => {
+    drawMode = !drawMode;
+    overlay.style.pointerEvents = drawMode ? "all" : "none";
+    lassoButton.textContent = drawMode ? "Cancel drawing" : "Draw selection";
+    selectionStatus.textContent = drawMode
+      ? "Drag around the candidates to select"
+      : selectedPoints.length
+        ? `${selectedPoints.length} candidates selected`
+        : "No candidates selected";
+    if (!drawMode) lassoPath.setAttribute("d", selectedPoints.length ? lassoPath.getAttribute("d") : "");
+  });
+  overlay.addEventListener("pointerdown", event => {
+    if (!drawMode) return;
+    drawing = true;
+    lassoPoints = [eventToSvgPoint(event)];
+    overlay.setPointerCapture(event.pointerId);
+    lassoPath.setAttribute("d", pathFromPoints(lassoPoints));
+  });
+  overlay.addEventListener("pointermove", event => {
+    if (!drawing) return;
+    const next = eventToSvgPoint(event);
+    const previous = lassoPoints[lassoPoints.length - 1];
+    if (Math.hypot(next.x - previous.x, next.y - previous.y) >= 3) {
+      lassoPoints.push(next);
+      lassoPath.setAttribute("d", pathFromPoints(lassoPoints));
+    }
+  });
+  overlay.addEventListener("pointerup", finishDrawing);
+  overlay.addEventListener("pointercancel", finishDrawing);
+  clearButton.addEventListener("click", () => {
+    renderSelection([]);
+    lassoPath.setAttribute("d", "");
+    selectionStatus.textContent = "No candidates selected";
+  });
+  copyButton.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(selectedText.textContent);
+      selectionStatus.textContent = `${selectedPoints.length} chromosomes copied`;
+    } catch (error) {
+      const textarea = document.createElement("textarea");
+      textarea.value = selectedText.textContent;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+      selectionStatus.textContent = `${selectedPoints.length} chromosomes copied`;
+    }
+  });
+  downloadButton.addEventListener("click", () => {
+    const blob = new Blob([selectedText.textContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "selected_chromosomes.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+  coordinatesButton.addEventListener("click", () => {
+    const headers = [
+      "candidate", "generation", "keff", "maxbu",
+      "f_type01", "f_type02", "f_type03", "f_type04",
+      "generation_folder", "subfolder", "source_folder", "source_filename"
+    ];
+    const csvCell = value => {
+      const text = value === null || value === undefined ? "" : String(value);
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const rows = shownPoints.map(point => [
+      point.candidate,
+      point.generation,
+      point.keff,
+      point.maxbu,
+      point.fuelTypes.f_type01,
+      point.fuelTypes.f_type02,
+      point.fuelTypes.f_type03,
+      point.fuelTypes.f_type04,
+      point.generationFolder,
+      point.subfolder,
+      point.sourceFolder,
+      point.filename
+    ]);
+    const csvText = [headers, ...rows]
+      .map(row => row.map(csvCell).join(","))
+      .join("\r\n");
+    const blob = new Blob(["\ufeff", csvText], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "shown_candidate_coordinates.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+  const applyFuelFilter = () => {
+    const visiblePoints = [];
+    pointElements.forEach(({ point, circle }) => {
+      const matches = fuelFilters.every(filter => {
+        const selectedFuel = filter.value.toLowerCase();
+        const candidateFuel = point.fuelTypes[filter.dataset.field];
+        return selectedFuel === "any" ||
+          String(candidateFuel).toLowerCase() === selectedFuel;
+      });
+      circle.style.display = matches ? "" : "none";
+      circle.setAttribute("aria-hidden", matches ? "false" : "true");
+      if (matches) visiblePoints.push(point);
+    });
+    renderSelection([]);
+    lassoPath.setAttribute("d", "");
+    shownPoints = visiblePoints;
+    updateStatisticsAndFit(visiblePoints);
+    applyPointColors();
+    lassoButton.disabled = visiblePoints.length === 0;
+    coordinatesButton.disabled = visiblePoints.length === 0;
+    selectionStatus.textContent = `${visiblePoints.length} of ${points.length} candidates shown`;
+  };
+  fuelFilters.forEach(filter => filter.addEventListener("change", applyFuelFilter));
+  colorMetric.addEventListener("change", applyPointColors);
+  colorRegion.addEventListener("change", applyPointColors);
+  applyFuelFilter();
+})().catch(error => {
+  const message = document.getElementById("load-error");
+  message.hidden = false;
+  message.textContent = `${error.message} Serve this folder through a web server or GitHub Pages.`;
+  console.error(error);
+});
+</script>
+</body>
+</html>
