@@ -85,7 +85,7 @@
     .color-gradient { flex: 1 1 130px; }
     .chart { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
     .chart svg { width: 760px; max-width: none; }
-    .chart.lasso-active { overflow: hidden; overscroll-behavior: none; }
+    .chart.lasso-active { overflow: hidden; overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; }
     .chart.lasso-active svg { width: 100%; max-width: 100%; }
     .chart.lasso-active .lasso-overlay { touch-action: none; }
     .tooltip { max-width: min(320px, calc(100vw - 40px)); font-size: 12px; }
@@ -538,6 +538,22 @@
     }
     return inside;
   };
+  const lassoIsLargeEnough = polygon => {
+    if (polygon.length < 6) return false;
+    const xValues = polygon.map(point => point.x);
+    const yValues = polygon.map(point => point.y);
+    return Math.max(...xValues) - Math.min(...xValues) >= 30 &&
+      Math.max(...yValues) - Math.min(...yValues) >= 30;
+  };
+  const releaseOverlayPointer = pointerId => {
+    try {
+      if (!overlay.hasPointerCapture || overlay.hasPointerCapture(pointerId)) {
+        overlay.releasePointerCapture(pointerId);
+      }
+    } catch (error) {
+      // Some mobile browsers release capture before reporting cancellation.
+    }
+  };
   const chromosomeBlock = point => {
     const location = `${point.generationFolder}/${point.chromosomeName}`;
     const value = point.chromosome === null
@@ -561,25 +577,36 @@
   };
   const finishDrawing = event => {
     if (!drawing) return;
+    event.preventDefault();
     drawing = false;
-    overlay.releasePointerCapture(event.pointerId);
-    if (lassoPoints.length >= 3) {
-      lassoPath.setAttribute("d", pathFromPoints(lassoPoints, true));
-      const selected = pointElements
-        .filter(({ point, circle }) =>
-          circle.style.display !== "none" &&
-          pointInPolygon(sx(point.keff), sy(point.maxbu), lassoPoints)
-        )
-        .map(({ point }) => point);
-      renderSelection(selected);
-    } else {
+    releaseOverlayPointer(event.pointerId);
+    if (!lassoIsLargeEnough(lassoPoints)) {
       lassoPath.setAttribute("d", "");
-      selectionStatus.textContent = "Draw a larger closed loop";
+      lassoPoints = [];
+      selectionStatus.textContent = "Stroke was interrupted or too small; draw again";
+      return;
     }
+    lassoPath.setAttribute("d", pathFromPoints(lassoPoints, true));
+    const selected = pointElements
+      .filter(({ point, circle }) =>
+        circle.style.display !== "none" &&
+        pointInPolygon(sx(point.keff), sy(point.maxbu), lassoPoints)
+      )
+      .map(({ point }) => point);
+    renderSelection(selected);
     drawMode = false;
     overlay.style.pointerEvents = "none";
     setChartSelectionMode(false);
     lassoButton.textContent = "Draw selection";
+  };
+  const cancelInterruptedDrawing = event => {
+    if (!drawing) return;
+    event.preventDefault();
+    drawing = false;
+    releaseOverlayPointer(event.pointerId);
+    lassoPoints = [];
+    lassoPath.setAttribute("d", "");
+    selectionStatus.textContent = "Touch was interrupted; drawing mode is still active—try again";
   };
 
   lassoButton.addEventListener("click", () => {
@@ -600,9 +627,13 @@
     event.stopPropagation();
     drawing = true;
     lassoPoints = [eventToSvgPoint(event)];
-    overlay.setPointerCapture(event.pointerId);
+    try {
+      overlay.setPointerCapture(event.pointerId);
+    } catch (error) {
+      // Continue without capture on older mobile browsers.
+    }
     lassoPath.setAttribute("d", pathFromPoints(lassoPoints));
-  });
+  }, { passive: false });
   overlay.addEventListener("pointermove", event => {
     if (!drawing) return;
     event.preventDefault();
@@ -613,9 +644,9 @@
       lassoPoints.push(next);
       lassoPath.setAttribute("d", pathFromPoints(lassoPoints));
     }
-  });
-  overlay.addEventListener("pointerup", finishDrawing);
-  overlay.addEventListener("pointercancel", finishDrawing);
+  }, { passive: false });
+  overlay.addEventListener("pointerup", finishDrawing, { passive: false });
+  overlay.addEventListener("pointercancel", cancelInterruptedDrawing, { passive: false });
   clearButton.addEventListener("click", () => {
     renderSelection([]);
     lassoPath.setAttribute("d", "");
