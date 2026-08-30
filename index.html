@@ -7,8 +7,10 @@
 <style>
   :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: Canvas; color: CanvasText; }
-  main { width: min(520px, calc(100% - 40px)); padding: 28px; border: 1px solid GrayText; border-radius: 12px; }
+  main { width: min(680px, calc(100% - 40px)); padding: 28px; border: 1px solid GrayText; border-radius: 12px; }
   h1 { margin-top: 0; }
+  p, li { line-height: 1.5; }
+  .overview { margin: 16px 0; padding: 12px 15px; border-left: 4px solid #2563eb; background: color-mix(in srgb, CanvasText 4%, Canvas); }
   select { width: 100%; padding: 10px; font: inherit; background: Canvas; color: CanvasText; border: 1px solid GrayText; border-radius: 7px; }
   a { color: LinkText; }
 </style>
@@ -16,7 +18,17 @@
 <body>
 <main>
   <h1>Choose a calculation</h1>
-  <p>Each calculation uses its own plot scale and units.</p>
+  <p>This site explores the relationship between <em>k</em><sub>eff</sub> and the configured result quantity for candidate designs collected across multiple optimization generations.</p>
+  <div class="overview">
+    <strong>What you can investigate</strong>
+    <ul>
+      <li>Compare the two quantities using Pearson and Spearman correlations and a fitted trend line.</li>
+      <li>Filter candidates independently by the fuel type in regions 01–04.</li>
+      <li>Color points by generation, enrichment, or uranium ratio.</li>
+      <li>Select groups of points and inspect or download their chromosomes.</li>
+    </ul>
+  </div>
+  <p>Each calculation has separate source data, plot scaling, and y-axis units. Select the case you want to inspect:</p>
   <label for="calculation">Calculation</label>
   <select id="calculation" onchange="if (this.value) location.href = this.value">
     <option value="">Select a calculation…</option>

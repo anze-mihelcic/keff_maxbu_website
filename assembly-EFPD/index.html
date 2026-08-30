@@ -41,6 +41,16 @@
   .load-error { padding: 12px; border: 1px solid #dc2626; border-radius: 8px; color: #dc2626; }
   .site-nav { margin: 0 0 10px; }
   .site-nav a { color: LinkText; }
+  .explanation { margin: 14px 0; padding: 14px 16px; border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: 9px; background: color-mix(in srgb, CanvasText 3%, Canvas); }
+  .explanation h2 { margin: 0 0 8px; font-size: 1.08rem; }
+  .explanation p { margin: 6px 0; line-height: 1.5; }
+  .explanation dl { display: grid; grid-template-columns: max-content 1fr; gap: 5px 12px; margin: 10px 0; }
+  .explanation dt { font-weight: 650; }
+  .explanation dd { margin: 0; }
+  .explanation summary { cursor: pointer; font-weight: 650; }
+  .explanation li { margin: 5px 0; line-height: 1.45; }
+  .caution { font-style: italic; color: GrayText; }
+  @media (max-width: 650px) { .explanation dl { grid-template-columns: 1fr; } .explanation dd { margin-bottom: 6px; } }
 </style>
 </head>
 <body>
@@ -48,6 +58,30 @@
   <p class="site-nav"><a href="../">← Choose another calculation</a></p>
   <h1>Assembly Efpd: correlation between keff and maxbu</h1>
   <p id="load-error" class="load-error" hidden></p>
+  <section class="explanation" aria-labelledby="explanation-title">
+    <h2 id="explanation-title">What this plot shows</h2>
+    <p>Each point represents one candidate design collected from the fitness files across all included generation folders for this calculation. The plot helps assess whether the two displayed quantities tend to change together.</p>
+    <p id="dataset-summary">Loading candidate summary…</p>
+    <dl>
+      <dt>X axis</dt><dd><strong>keff</strong>. The effective neutron multiplication factor, <em>k</em><sub>eff</sub>, describes the balance between neutron production and loss.</dd>
+      <dt>Y axis</dt><dd><strong>Cycle length [day]</strong>, using the units configured for this calculation.</dd>
+      <dt>Each point</dt><dd>A single candidate. Hover over it to see its candidate name, generation, fuel types, coordinates, and source location.</dd>
+      <dt>Fit line</dt><dd>A least-squares linear fit through the candidates currently visible after filtering.</dd>
+      <dt>Pearson r</dt><dd>Measures linear association from −1 to +1. Values near ±1 indicate a stronger linear relationship; values near 0 indicate little linear association.</dd>
+      <dt>Spearman rho</dt><dd>Measures rank-based monotonic association, so it can detect a consistently increasing or decreasing trend that is not perfectly linear.</dd>
+    </dl>
+    <details open>
+      <summary>How to use the interactive controls</summary>
+      <ul>
+        <li>The four <strong>f_type</strong> selectors filter fuel regions independently. A candidate must satisfy every specific selection; <strong>any</strong> leaves that region unrestricted.</li>
+        <li><strong>Color by</strong> can show generation, enrichment, or uranium ratio. For enrichment or uranium ratio, select a fuel region and a specific fuel type for that same region.</li>
+        <li><strong>Draw selection</strong> lets you draw a closed loop around points. The corresponding chromosomes can then be copied or downloaded.</li>
+        <li><strong>Download shown coordinates</strong> exports only the candidates visible under the current filters.</li>
+        <li>The candidate count, correlations, and fitted line update automatically when filters change.</li>
+      </ul>
+    </details>
+    <p class="caution">Correlation describes association, not causation. Outliers, repeated candidates, generation history, and other design variables can influence the observed relationship.</p>
+  </section>
   <p class="hint">Hover over a point for details, or draw a closed loop to select several candidates. Point color indicates generation.</p>
   <div class="controls">
     <label for="fuel-filter-01">f_type01</label>
@@ -139,6 +173,12 @@
   }
   const points = payload.points;
   const stats = payload.statistics;
+  const datasetSummary = document.getElementById("dataset-summary");
+  const generationNumbers = [...new Set(points.map(point => Number(point.generation)))].sort((a, b) => a - b);
+  const generationRange = generationNumbers.length === 1
+    ? `generation ${generationNumbers[0]}`
+    : `generations ${generationNumbers[0]}–${generationNumbers[generationNumbers.length - 1]}`;
+  datasetSummary.textContent = `This page contains ${points.length.toLocaleString()} candidates from ${generationNumbers.length} generation${generationNumbers.length === 1 ? "" : "s"} (${generationRange}).`;
   const svg = document.getElementById("plot");
   const chart = document.getElementById("chart");
   const tooltip = document.getElementById("tooltip");
