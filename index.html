@@ -11,6 +11,8 @@
   h1 { margin-top: 0; }
   p, li { line-height: 1.5; }
   .overview { margin: 16px 0; padding: 12px 15px; border-left: 4px solid #2563eb; background: color-mix(in srgb, CanvasText 4%, Canvas); }
+  .overview summary { cursor: pointer; font-weight: 700; }
+  .overview[open] summary { margin-bottom: 8px; }
   select { width: 100%; min-height: 48px; padding: 10px; font: inherit; font-size: 16px; background: Canvas; color: CanvasText; border: 1px solid GrayText; border-radius: 7px; }
   a { color: LinkText; }
   @media (max-width: 650px) {
@@ -26,7 +28,8 @@
 <main>
   <h1>Choose a calculation</h1>
   <p>This site explores the relationship between <em>k</em><sub>eff</sub> and the configured result quantity for candidate designs collected across multiple optimization generations.</p>
-  <div class="overview">
+  <details class="overview">
+    <summary>Help &amp; description</summary>
     <strong>What you can investigate</strong>
     <ul>
       <li>Compare the two quantities using Pearson and Spearman correlations and a fitted trend line.</li>
@@ -34,7 +37,7 @@
       <li>Color points by generation, enrichment, or uranium ratio.</li>
       <li>Select groups of points and inspect or download their chromosomes.</li>
     </ul>
-  </div>
+  </details>
   <p>Each calculation has separate source data, plot scaling, and y-axis units. Select the case you want to inspect:</p>
   <label for="calculation">Calculation</label>
   <select id="calculation" onchange="if (this.value) location.href = this.value">
