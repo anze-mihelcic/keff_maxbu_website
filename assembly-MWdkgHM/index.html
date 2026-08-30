@@ -85,6 +85,9 @@
     .color-gradient { flex: 1 1 130px; }
     .chart { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
     .chart svg { width: 760px; max-width: none; }
+    .chart.lasso-active { overflow: hidden; overscroll-behavior: none; }
+    .chart.lasso-active svg { width: 100%; max-width: 100%; }
+    .chart.lasso-active .lasso-overlay { touch-action: none; }
     .tooltip { max-width: min(320px, calc(100vw - 40px)); font-size: 12px; }
     #selection { margin-top: 12px; }
     #selected-text { padding: 9px; font-size: 12px; max-height: 55vh; overflow: auto; }
@@ -121,7 +124,7 @@
       <ul>
         <li>The four <strong>f_type</strong> selectors filter fuel regions independently. A candidate must satisfy every specific selection; <strong>any</strong> leaves that region unrestricted.</li>
         <li><strong>Color by</strong> can show generation, enrichment, or uranium ratio. For enrichment or uranium ratio, select a fuel region and a specific fuel type for that same region.</li>
-        <li><strong>Draw selection</strong> lets you draw a closed loop around points. The corresponding chromosomes can then be copied or downloaded.</li>
+        <li><strong>Draw selection</strong> lets you draw a closed loop around points. On a phone, selection mode fits the full plot to the screen and temporarily locks scrolling. The corresponding chromosomes can then be copied or downloaded.</li>
         <li><strong>Download shown coordinates</strong> exports only the candidates visible under the current filters.</li>
         <li>The candidate count, correlations, and fitted line update automatically when filters change.</li>
       </ul>
@@ -130,7 +133,7 @@
     </div>
   </dialog>
   <p class="hint">Hover over or tap a point for details, or draw a closed loop to select several candidates. Point color indicates generation.</p>
-  <p class="mobile-hint">On a phone, swipe horizontally across the chart to inspect the full plot. To select points, tap <strong>Draw selection</strong> first and then draw the loop with one finger.</p>
+  <p class="mobile-hint">On a phone, swipe horizontally to inspect the plot. Tap <strong>Draw selection</strong> to fit the full graph to the screen and lock movement, then draw the loop with one finger.</p>
   <div class="controls">
     <label for="fuel-filter-01">f_type01</label>
     <select id="fuel-filter-01" class="fuel-filter" data-field="f_type01">
@@ -500,6 +503,18 @@
   let lassoPoints = [];
   let selectedPoints = [];
   let shownPoints = points.slice();
+  let chartScrollBeforeDrawing = 0;
+
+  const setChartSelectionMode = active => {
+    if (active) {
+      chartScrollBeforeDrawing = chart.scrollLeft;
+      chart.classList.add("lasso-active");
+      chart.scrollLeft = 0;
+    } else {
+      chart.classList.remove("lasso-active");
+      requestAnimationFrame(() => { chart.scrollLeft = chartScrollBeforeDrawing; });
+    }
+  };
 
   const eventToSvgPoint = event => {
     const point = svg.createSVGPoint();
@@ -563,15 +578,17 @@
     }
     drawMode = false;
     overlay.style.pointerEvents = "none";
+    setChartSelectionMode(false);
     lassoButton.textContent = "Draw selection";
   };
 
   lassoButton.addEventListener("click", () => {
     drawMode = !drawMode;
     overlay.style.pointerEvents = drawMode ? "all" : "none";
+    setChartSelectionMode(drawMode);
     lassoButton.textContent = drawMode ? "Cancel drawing" : "Draw selection";
     selectionStatus.textContent = drawMode
-      ? "Drag around the candidates to select"
+      ? "Plot fitted to screen; draw around the candidates"
       : selectedPoints.length
         ? `${selectedPoints.length} candidates selected`
         : "No candidates selected";
@@ -579,6 +596,8 @@
   });
   overlay.addEventListener("pointerdown", event => {
     if (!drawMode) return;
+    event.preventDefault();
+    event.stopPropagation();
     drawing = true;
     lassoPoints = [eventToSvgPoint(event)];
     overlay.setPointerCapture(event.pointerId);
@@ -586,6 +605,8 @@
   });
   overlay.addEventListener("pointermove", event => {
     if (!drawing) return;
+    event.preventDefault();
+    event.stopPropagation();
     const next = eventToSvgPoint(event);
     const previous = lassoPoints[lassoPoints.length - 1];
     if (Math.hypot(next.x - previous.x, next.y - previous.y) >= 3) {
