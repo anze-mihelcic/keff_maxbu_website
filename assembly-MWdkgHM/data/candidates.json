@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-30T20:48:00.323019Z",
+  "generatedAt": "2026-09-02T11:54:03.433934Z",
   "points": [
     {
       "candidate": "candidate_01",
@@ -28273,12 +28273,105 @@
         "f_type03": "UYH",
         "f_type04": "UO2"
       }
+    },
+    {
+      "candidate": "candidate_13",
+      "generation": 60,
+      "keff": 1.67172,
+      "maxbu": 288.7887480035203,
+      "generationFolder": "generation_60",
+      "subfolder": ".",
+      "sourceFolder": "generation_60",
+      "filename": "fitness_file_60.txt",
+      "chromosomeName": "chromosome_13",
+      "chromosome": {
+        "enrichment01": 4.67,
+        "uranium_ratio01": 32.56,
+        "f_type01": "MOX",
+        "enrichment02": 6.75,
+        "uranium_ratio02": 45.16,
+        "f_type02": "UO2",
+        "enrichment03": 8.94,
+        "uranium_ratio03": 16.13,
+        "f_type03": "UO2",
+        "enrichment04": 7.54,
+        "uranium_ratio04": 11.49,
+        "f_type04": "MOX"
+      },
+      "fuelTypes": {
+        "f_type01": "MOX",
+        "f_type02": "UO2",
+        "f_type03": "UO2",
+        "f_type04": "MOX"
+      }
+    },
+    {
+      "candidate": "candidate_14",
+      "generation": 60,
+      "keff": 1.6698,
+      "maxbu": 330.41295901338293,
+      "generationFolder": "generation_60",
+      "subfolder": ".",
+      "sourceFolder": "generation_60",
+      "filename": "fitness_file_60.txt",
+      "chromosomeName": "chromosome_14",
+      "chromosome": {
+        "enrichment01": 8.22,
+        "uranium_ratio01": 36.96,
+        "f_type01": "MOX",
+        "enrichment02": 6.11,
+        "uranium_ratio02": 44.73,
+        "f_type02": "UZrH",
+        "enrichment03": 9.89,
+        "uranium_ratio03": 24.17,
+        "f_type03": "UO2",
+        "enrichment04": 9.82,
+        "uranium_ratio04": 19.69,
+        "f_type04": "MOX"
+      },
+      "fuelTypes": {
+        "f_type01": "MOX",
+        "f_type02": "UZrH",
+        "f_type03": "UO2",
+        "f_type04": "MOX"
+      }
+    },
+    {
+      "candidate": "candidate_15",
+      "generation": 60,
+      "keff": 1.65967,
+      "maxbu": 311.62699655496397,
+      "generationFolder": "generation_60",
+      "subfolder": ".",
+      "sourceFolder": "generation_60",
+      "filename": "fitness_file_60.txt",
+      "chromosomeName": "chromosome_15",
+      "chromosome": {
+        "enrichment01": 5.8,
+        "uranium_ratio01": 42.14,
+        "f_type01": "MOX",
+        "enrichment02": 9.99,
+        "uranium_ratio02": 36.83,
+        "f_type02": "UZrH",
+        "enrichment03": 8.17,
+        "uranium_ratio03": 25.74,
+        "f_type03": "UO2",
+        "enrichment04": 9.82,
+        "uranium_ratio04": 25.63,
+        "f_type04": "UZrH"
+      },
+      "fuelTypes": {
+        "f_type01": "MOX",
+        "f_type02": "UZrH",
+        "f_type03": "UO2",
+        "f_type04": "UZrH"
+      }
     }
   ],
   "statistics": {
-    "pearson": 0.9407854464350874,
-    "spearman": 0.8337092916937779,
-    "slope": 1255.8920538280875,
-    "intercept": -1807.4642477557325
+    "pearson": 0.9407605701150406,
+    "spearman": 0.8322946324029524,
+    "slope": 1256.4380027388368,
+    "intercept": -1808.270448867119
   }
 }

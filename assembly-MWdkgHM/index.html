@@ -113,7 +113,7 @@
     <p id="dataset-summary">Loading candidate summary…</p>
     <dl>
       <dt>X axis</dt><dd><strong>keff</strong>. The effective neutron multiplication factor, <em>k</em><sub>eff</sub>, describes the balance between neutron production and loss.</dd>
-      <dt>Y axis</dt><dd><strong>Cycle length [MWd/kgHM]</strong>, using the units configured for this calculation.</dd>
+      <dt>Y axis</dt><dd><strong>maxbu</strong>, using the units configured for this calculation.</dd>
       <dt>Each point</dt><dd>A single candidate. Hover over it or tap it to see its candidate name, generation, fuel types, coordinates, and source location.</dd>
       <dt>Fit line</dt><dd>A least-squares linear fit through the candidates currently visible after filtering.</dd>
       <dt>Pearson r</dt><dd>Measures linear association from −1 to +1. Values near ±1 indicate a stronger linear relationship; values near 0 indicate little linear association.</dd>
@@ -211,7 +211,7 @@
   "use strict";
   const plotTitle = "Assembly Mwdkghm: correlation between keff and maxbu";
   const xAxisLabel = "keff";
-  const yAxisLabel = "Cycle length [MWd/kgHM]";
+  const yAxisLabel = "maxbu";
   const helpButton = document.getElementById("help-button");
   const helpDialog = document.getElementById("help-dialog");
   const helpCloseButton = document.getElementById("help-close-button");
